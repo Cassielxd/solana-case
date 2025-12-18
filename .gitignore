@@ -1,7 +1,46 @@
+# Anchor
 .anchor
-.DS_Store
 target
 **/*.rs.bk
+
+# Node
 node_modules
-test-ledger
 .yarn
+yarn-error.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+dist
+build
+
+# Test ledger
+test-ledger
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Keypairs (IMPORTANT: Never commit private keys!)
+*-keypair.json
+*.key
+wallet.json
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.cache
