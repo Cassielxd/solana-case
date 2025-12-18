@@ -1,0 +1,19 @@
+[package]
+name = "counter-client"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+# Anchor SDK (会自动引入兼容的 solana-sdk)
+anchor-client = "0.32.1"
+anchor-lang = "0.32.1"
+borsh = "0.10"
+
+# 工具库
+anyhow = "1.0"
+shellexpand = "3.0"
+
+[patch.crates-io]
+# 解决 anchor 0.32.1 的依赖冲突
+solana-sdk-ids = { version = "2.2.1" }

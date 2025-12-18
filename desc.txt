@@ -1,0 +1,7 @@
+//启动持久化
+solana-test-validator --ledger .anchor/test-ledger
+//构建
+anchor build
+//部署
+anchor deploy
+执行测试 或者第三方房调用
