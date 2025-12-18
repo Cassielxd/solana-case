@@ -1,17 +1,23 @@
 // ============================================================================
-// User Profile - 用户资料管理程序
+// User Profile - 用户资料管理程序（第三方系统版本）
 // ============================================================================
 //
+// 设计说明：
+// - 系统有一个统一的管理员钱包（admin）
+// - 为第三方系统的用户创建链上资料（通过 user_id 标识）
+// - 所有费用由系统管理员钱包支付
+// - PDA seeds: [b"user-profile", admin.key(), user_id]
+//
 // 功能：
-// - 创建用户资料（用户名、邮箱、年龄、个人简介）
-// - 更新用户资料
-// - 删除用户资料
-// - 存储第三方系统的用户信息
+// - 创建用户资料（管理员为第三方用户创建）
+// - 更新用户资料（管理员更新）
+// - 删除用户资料（管理员删除）
+// - 查询用户资料
 //
 // 使用场景：
-// - Web3 应用的用户身份管理
-// - 链上社交媒体资料
-// - DApp 用户数据存储
+// - Web2 应用的链上数据存储
+// - 中心化管理的 DApp 后端
+// - 第三方系统集成 Solana
 //
 // ============================================================================
 
@@ -27,33 +33,37 @@ pub mod user_profile {
     /// 创建用户资料
     ///
     /// # 功能
-    /// - 创建一个新的用户资料账户
-    /// - 存储用户的基本信息（用户名、邮箱、年龄、个人简介）
-    /// - 记录创建时间和更新时间
-    /// - 使用 PDA 确保每个钱包只能有一个资料
+    /// - 系统管理员为第三方用户创建链上资料
+    /// - 使用 user_id 作为唯一标识符
+    /// - 所有费用由管理员钱包支付
+    /// - 使用 PDA 确保每个 user_id 只能有一个资料
     ///
     /// # 参数
+    /// - `user_id`: 第三方系统的用户 ID（最多 32 字符，如 "user123", "alice@example.com"）
     /// - `username`: 用户名（最多 32 字符）
     /// - `email`: 邮箱地址（最多 64 字符）
     /// - `age`: 年龄（0-255）
     /// - `bio`: 个人简介（最多 256 字符）
     ///
     /// # 权限
-    /// - 任何人都可以为自己创建资料
-    /// - 每个钱包地址只能创建一个资料
+    /// - 只有系统管理员可以创建
+    /// - 每个 user_id 只能创建一个资料
     ///
     /// # 返回
     /// - `Ok(())`: 创建成功
-    /// - `Err(ProfileError::UsernameTooLong)`: 用户名超过 32 字符
-    /// - `Err(ProfileError::EmailTooLong)`: 邮箱超过 64 字符
-    /// - `Err(ProfileError::BioTooLong)`: 个人简介超过 256 字符
+    /// - `Err(ProfileError::*)`: 相应的验证错误
     pub fn create_profile(
         ctx: Context<CreateProfile>,
+        user_id: String,
         username: String,
         email: String,
         age: u8,
         bio: String,
     ) -> Result<()> {
+        // 验证：user_id 长度
+        require!(user_id.len() <= 32, ProfileError::UserIdTooLong);
+        // 验证：user_id 不能为空
+        require!(!user_id.is_empty(), ProfileError::UserIdEmpty);
         // 验证：用户名长度
         require!(username.len() <= 32, ProfileError::UsernameTooLong);
         // 验证：邮箱长度
@@ -73,17 +83,19 @@ pub mod user_profile {
         let profile = &mut ctx.accounts.user_profile;
 
         // 设置用户资料字段
-        profile.authority = ctx.accounts.authority.key(); // 所有者公钥
-        profile.username = username.clone();              // 用户名
-        profile.email = email.clone();                    // 邮箱
-        profile.age = age;                                // 年龄
-        profile.bio = bio.clone();                        // 个人简介
-        profile.created_at = current_time;                // 创建时间
-        profile.updated_at = current_time;                // 更新时间
-        profile.bump = ctx.bumps.user_profile;            // PDA bump
+        profile.admin = ctx.accounts.admin.key();   // 系统管理员公钥
+        profile.user_id = user_id.clone();          // 第三方用户 ID
+        profile.username = username.clone();        // 用户名
+        profile.email = email.clone();              // 邮箱
+        profile.age = age;                          // 年龄
+        profile.bio = bio.clone();                  // 个人简介
+        profile.created_at = current_time;          // 创建时间
+        profile.updated_at = current_time;          // 更新时间
+        profile.bump = ctx.bumps.user_profile;      // PDA bump
 
         // 记录日志
         msg!("✅ User profile created successfully");
+        msg!("   User ID: {}", user_id);
         msg!("   Username: {}", username);
         msg!("   Email: {}", email);
         msg!("   Age: {}", age);
@@ -95,24 +107,26 @@ pub mod user_profile {
     /// 更新用户资料
     ///
     /// # 功能
-    /// - 更新用户的基本信息
+    /// - 系统管理员更新用户资料
     /// - 自动更新 updated_at 时间戳
-    /// - 只有资料所有者可以更新
+    /// - 支持部分更新（可选字段）
     ///
     /// # 参数
+    /// - `user_id`: 第三方用户 ID（用于查找资料）
     /// - `username`: 新的用户名（可选，传 None 保持不变）
     /// - `email`: 新的邮箱（可选）
     /// - `age`: 新的年龄（可选）
     /// - `bio`: 新的个人简介（可选）
     ///
     /// # 权限
-    /// - **只有资料所有者**可以更新（通过 has_one 约束验证）
+    /// - **只有系统管理员**可以更新
     ///
     /// # 返回
     /// - `Ok(())`: 更新成功
     /// - 相应的验证错误
     pub fn update_profile(
         ctx: Context<UpdateProfile>,
+        _user_id: String,  // 用于 PDA 派生，函数体内不使用
         username: Option<String>,
         email: Option<String>,
         age: Option<u8>,
@@ -154,6 +168,7 @@ pub mod user_profile {
         profile.updated_at = clock.unix_timestamp;
 
         msg!("✅ Profile updated successfully");
+        msg!("   User ID: {}", profile.user_id);
         msg!("   Updated at: {}", profile.updated_at);
 
         Ok(())
@@ -162,25 +177,29 @@ pub mod user_profile {
     /// 删除用户资料
     ///
     /// # 功能
-    /// - 删除用户资料账户
-    /// - 将账户中的 SOL 退还给所有者
+    /// - 系统管理员删除用户资料
+    /// - 将账户中的 SOL 退还给管理员
     /// - 释放账户占用的存储空间
     ///
+    /// # 参数
+    /// - `user_id`: 第三方用户 ID（用于查找资料）
+    ///
     /// # 权限
-    /// - **只有资料所有者**可以删除
+    /// - **只有系统管理员**可以删除
     ///
     /// # 返回
     /// - `Ok(())`: 删除成功
-    pub fn delete_profile(ctx: Context<DeleteProfile>) -> Result<()> {
+    pub fn delete_profile(ctx: Context<DeleteProfile>, _user_id: String) -> Result<()> {
         let profile = &ctx.accounts.user_profile;
 
         // 记录日志
         msg!("🗑️  Deleting user profile");
+        msg!("   User ID: {}", profile.user_id);
         msg!("   Username: {}", profile.username);
         msg!("   Created at: {}", profile.created_at);
 
-        // Anchor 会自动执行以下操作（通过 #[account(close = authority)] 约束）：
-        // 1. 将账户中的所有 lamports 转给 authority
+        // Anchor 会自动执行以下操作（通过 #[account(close = admin)] 约束）：
+        // 1. 将账户中的所有 lamports 转给 admin
         // 2. 清空账户数据
         // 3. 将账户标记为已关闭
 
@@ -198,30 +217,34 @@ pub mod user_profile {
 ///
 /// # 账户说明
 /// - `user_profile`: 要创建的用户资料 PDA 账户
-/// - `authority`: 用户钱包（签名者，支付租金）
+/// - `admin`: 系统管理员（签名者，支付租金）
 /// - `system_program`: 系统程序
 ///
 /// # PDA Seeds
-/// - `[b"user-profile", authority.key().as_ref()]`
-/// - 确保每个钱包地址只能有一个用户资料
+/// - `[b"user-profile", admin.key().as_ref(), user_id.as_bytes()]`
+/// - admin: 系统管理员钱包地址（固定）
+/// - user_id: 第三方用户 ID（变化）
+/// - 确保每个 user_id 只能有一个资料
 #[derive(Accounts)]
+#[instruction(user_id: String)]  // 声明指令参数，用于 PDA seeds
 pub struct CreateProfile<'info> {
     /// 用户资料账户（PDA）
     #[account(
         init,                                  // 初始化新账户
-        payer = authority,                     // 由 authority 支付租金
+        payer = admin,                         // 由系统管理员支付租金
         space = 8 + UserProfile::INIT_SPACE,   // 账户空间
         seeds = [                              // PDA seeds
             b"user-profile",                   // 固定前缀
-            authority.key().as_ref()           // 用户钱包地址
+            admin.key().as_ref(),              // 系统管理员钱包地址
+            user_id.as_bytes()                 // 第三方用户 ID
         ],
         bump                                   // PDA bump（自动计算）
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    /// 用户钱包（所有者，必须签名）
+    /// 系统管理员（必须签名，支付租金）
     #[account(mut)]  // mut: 因为要支付租金
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
 
     /// 系统程序
     pub system_program: Program<'info, System>,
@@ -231,64 +254,69 @@ pub struct CreateProfile<'info> {
 ///
 /// # 账户说明
 /// - `user_profile`: 要更新的用户资料账户
-/// - `authority`: 资料所有者（必须签名）
+/// - `admin`: 系统管理员（必须签名）
 ///
 /// # 权限验证
-/// - `has_one = authority`: 验证 user_profile.authority == authority
+/// - `has_one = admin`: 验证 user_profile.admin == admin
 #[derive(Accounts)]
+#[instruction(user_id: String)]  // 声明指令参数，用于 PDA seeds
 pub struct UpdateProfile<'info> {
     /// 用户资料账户（PDA，可变）
     #[account(
         mut,                                   // 可变：数据会更新
-        has_one = authority,                   // 验证：必须是所有者
+        has_one = admin,                       // 验证：必须是系统管理员
         seeds = [                              // 验证 PDA
             b"user-profile",
-            authority.key().as_ref()
+            admin.key().as_ref(),              // 系统管理员钱包地址
+            user_id.as_bytes()                 // 第三方用户 ID
         ],
         bump = user_profile.bump               // 使用存储的 bump
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    /// 资料所有者（必须签名）
-    pub authority: Signer<'info>,
+    /// 系统管理员（必须签名）
+    pub admin: Signer<'info>,
 }
 
 /// 删除用户资料的账户验证
 ///
 /// # 账户说明
 /// - `user_profile`: 要删除的用户资料账户
-/// - `authority`: 资料所有者（接收退还的 SOL）
+/// - `admin`: 系统管理员（接收退还的 SOL）
 ///
 /// # 效果
-/// - 账户被关闭，SOL 退还给 authority
+/// - 账户被关闭，SOL 退还给管理员
 #[derive(Accounts)]
+#[instruction(user_id: String)]  // 声明指令参数，用于 PDA seeds
 pub struct DeleteProfile<'info> {
     /// 用户资料账户（PDA，将被关闭）
     #[account(
         mut,                                   // 可变：账户会被关闭
-        has_one = authority,                   // 验证：必须是所有者
-        close = authority,                     // 关闭账户，SOL 退还给 authority
+        has_one = admin,                       // 验证：必须是系统管理员
+        close = admin,                         // 关闭账户，SOL 退还给管理员
         seeds = [                              // 验证 PDA
             b"user-profile",
-            authority.key().as_ref()
+            admin.key().as_ref(),              // 系统管理员钱包地址
+            user_id.as_bytes()                 // 第三方用户 ID
         ],
         bump = user_profile.bump               // 使用存储的 bump
     )]
     pub user_profile: Account<'info, UserProfile>,
 
-    /// 资料所有者（必须签名，接收退还的 SOL）
+    /// 系统管理员（必须签名，接收退还的 SOL）
     #[account(mut)]  // mut: 因为会接收 SOL
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
 }
 
 // ============================================================================
 // 数据结构
 // ============================================================================
 
-/// 用户资料数据结构
+/// 用户资料数据结构（第三方系统版本）
 ///
 /// # 字段说明
-/// - `authority`: 资料所有者（钱包地址）
+/// - `admin`: 系统管理员钱包地址（固定，所有资料共享）
+/// - `user_id`: 第三方系统的用户 ID（唯一标识，如 "user123"）
 /// - `username`: 用户名（最多 32 字符）
 /// - `email`: 邮箱地址（最多 64 字符）
 /// - `age`: 年龄（0-255）
@@ -300,7 +328,8 @@ pub struct DeleteProfile<'info> {
 /// # 存储空间
 /// ```
 /// 8 字节    - Anchor 账户判别器
-/// 32 字节   - authority (Pubkey)
+/// 32 字节   - admin (Pubkey)
+/// 36 字节   - user_id (4 + 32)
 /// 36 字节   - username (4 + 32)
 /// 68 字节   - email (4 + 64)
 /// 1 字节    - age (u8)
@@ -309,19 +338,33 @@ pub struct DeleteProfile<'info> {
 /// 8 字节    - updated_at (i64)
 /// 1 字节    - bump (u8)
 /// ---------
-/// 422 字节  总计
+/// 458 字节  总计
 /// ```
 ///
 /// # 使用场景
-/// - 社交 DApp 的用户资料
-/// - Web3 应用的身份信息
-/// - 链上游戏的玩家数据
-/// - 去中心化论坛的用户信息
+/// - Web2 应用的链上数据存储
+/// - 第三方系统集成 Solana
+/// - 中心化管理的 DApp 后端
+/// - 游戏服务器的玩家数据
+///
+/// # 设计说明
+/// - admin: 系统统一管理员（只有一个）
+/// - user_id: 第三方用户标识（可以是任何字符串）
+/// - PDA seeds: [b"user-profile", admin, user_id]
+/// - 管理员负责所有费用（创建、更新、删除）
 #[account]
 #[derive(InitSpace)]
 pub struct UserProfile {
-    /// 资料所有者（钱包地址）
-    pub authority: Pubkey,
+    /// 系统管理员钱包地址
+    /// 所有用户资料共享同一个管理员
+    /// 管理员负责支付所有费用
+    pub admin: Pubkey,
+
+    /// 第三方系统的用户 ID（最多 32 字符）
+    /// 例如: "user_12345", "alice@company.com", "discord:123456"
+    /// 用于唯一标识用户，也是 PDA seeds 的一部分
+    #[max_len(32)]
+    pub user_id: String,
 
     /// 用户名（最多 32 字符）
     /// 例如: "alice", "bob123"
@@ -358,13 +401,23 @@ pub struct UserProfile {
 /// 程序自定义错误
 ///
 /// Anchor 会自动为这些错误分配错误代码：
-/// - UsernameTooLong: 6000
-/// - EmailTooLong: 6001
-/// - BioTooLong: 6002
-/// - UsernameEmpty: 6003
-/// - EmailEmpty: 6004
+/// - UserIdTooLong: 6000
+/// - UserIdEmpty: 6001
+/// - UsernameTooLong: 6002
+/// - EmailTooLong: 6003
+/// - BioTooLong: 6004
+/// - UsernameEmpty: 6005
+/// - EmailEmpty: 6006
 #[error_code]
 pub enum ProfileError {
+    /// 用户 ID 超过 32 字符限制
+    #[msg("用户 ID 太长（最多 32 字符）")]
+    UserIdTooLong,
+
+    /// 用户 ID 不能为空
+    #[msg("用户 ID 不能为空")]
+    UserIdEmpty,
+
     /// 用户名超过 32 字符限制
     #[msg("用户名太长（最多 32 字符）")]
     UsernameTooLong,
