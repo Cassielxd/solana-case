@@ -12,9 +12,9 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { MyProject } from "../../target/types/my_project";
+import { MyProject } from "../../../target/types/my_project";
 import { Keypair } from "@solana/web3.js";
-import { createProvider, printAnchorError } from "../utils";
+import { createProvider, printAnchorError } from "../../shared/utils";
 
 async function main() {
   console.log("⚠️  错误处理示例");

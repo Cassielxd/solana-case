@@ -11,9 +11,9 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { MyProject } from "../../target/types/my_project";
+import { MyProject } from "../../../target/types/my_project";
 import { Keypair } from "@solana/web3.js";
-import { createProvider } from "../utils";
+import { createProvider } from "../../shared/utils";
 
 async function main() {
   console.log("📝 基础示例 - Anchor TypeScript 客户端");

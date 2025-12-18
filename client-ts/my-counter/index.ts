@@ -15,9 +15,9 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { MyProject } from "../target/types/my_project";
+import { MyProject } from "../../target/types/my_project";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { createProvider, printAccountInfo, formatSol } from "./utils";
+import { createProvider, printAccountInfo, formatSol } from "../shared/utils";
 
 // ============================================================================
 // 主函数

@@ -1,433 +1,182 @@
-# Solana 计数器 TypeScript 客户端
+# TypeScript 客户端
 
-这是一个使用 Anchor TypeScript SDK 编写的客户端程序，演示如何调用部署在 Solana 链上的计数器智能合约。
+多程序 TypeScript 客户端集合，包含完整的示例和共享工具库。
 
-## ✨ 特性
-
-这个客户端展示了如何：
-1. 连接到 Solana 网络
-2. 使用 Anchor Provider 管理钱包和连接
-3. 调用智能合约的指令（initialize、increment、decrement）
-4. 查询链上账户状态
-5. 处理错误和异常情况
-6. 批量执行交易
-
-## 🚀 快速开始
-
-### 前置要求
-
-- Node.js 16+
-- Yarn 或 npm
-- Solana CLI 工具
-- Anchor CLI
-
-### 安装依赖
-
-```bash
-# 在项目根目录
-yarn install
-```
-
-### 使用步骤
-
-#### 1. 启动本地 Solana 测试网络
-
-```bash
-# 在一个终端窗口中启动
-solana-test-validator
-```
-
-#### 2. 部署智能合约
-
-```bash
-# 在项目根目录
-anchor build
-anchor deploy
-```
-
-#### 3. 运行客户端
-
-```bash
-# 方式 1: 使用 ts-node
-npx ts-node client-ts/index.ts
-
-# 方式 2: 使用 Anchor 测试框架（推荐）
-anchor test --skip-local-validator
-
-# 方式 3: 编译后运行
-npx tsc client-ts/index.ts
-node client-ts/index.js
-```
-
-## 📖 核心概念
-
-### 1. Provider（提供者）
-
-Provider 封装了与 Solana 网络交互所需的所有配置：
-
-```typescript
-const provider = anchor.AnchorProvider.env();
-anchor.setProvider(provider);
-```
-
-Provider 包含：
-- **connection**: RPC 连接（用于查询链上数据）
-- **wallet**: 钱包（用于签名和支付交易费用）
-- **opts**: 选项（如 commitment 级别）
-
-### 2. Program（程序对象）
-
-Program 对象提供类型安全的 API 来调用智能合约：
-
-```typescript
-const program = anchor.workspace.myProject as Program<MyProject>;
-```
-
-Program 对象提供：
-- `program.methods`: 调用指令
-- `program.account`: 查询账户
-- `program.programId`: 程序 ID
-
-### 3. 调用指令
-
-使用 `program.methods` 调用智能合约指令：
-
-```typescript
-const tx = await program.methods
-  .increment()                          // 指令名（自动补全）
-  .accounts({                           // 账户（类型检查）
-    counter: counterPubkey,
-  })
-  .rpc();                               // 发送交易
-```
-
-Anchor 自动处理：
-- ✅ 指令鉴别器（8 字节 ID）
-- ✅ 参数序列化
-- ✅ 账户元数据
-- ✅ 交易构建和发送
-- ✅ 已知账户（如 systemProgram、authority）自动推断
-
-### 4. 查询账户
-
-使用 `program.account` 查询账户状态：
-
-```typescript
-const counterAccount = await program.account.counter.fetch(counterPubkey);
-
-console.log("计数值:", counterAccount.count.toString());
-console.log("权限:", counterAccount.authority.toBase58());
-```
-
-Anchor 自动：
-- ✅ 验证账户鉴别器
-- ✅ 反序列化数据
-- ✅ 提供类型化对象
-
-## 📚 代码结构
+## 📁 目录结构
 
 ```
 client-ts/
-├── index.ts           # 主示例（完整功能演示）
-├── utils.ts           # 工具函数库
-├── examples/          # 更多示例
-│   ├── basic.ts       # 基础示例
-│   ├── batch.ts       # 批量操作示例
-│   └── error.ts       # 错误处理示例
-├── README.md          # 本文档
-└── COMPARISON.md      # 与 Rust 客户端对比
+├── my-counter/          # 计数器程序客户端
+│   ├── index.ts         # 主示例（完整功能演示）
+│   └── examples/        # 多个使用场景
+│       ├── basic.ts     # 基础示例
+│       ├── batch.ts     # 批量操作
+│       ├── error-handling.ts  # 错误处理
+│       └── README.md    # 示例说明
+│
+├── token-vault/         # 金库程序客户端
+│   ├── index.ts         # 主示例
+│   └── examples/        # (待添加)
+│
+├── shared/              # 共享资源
+│   ├── utils.ts         # 工具函数库
+│   ├── README.md        # 客户端文档
+│   └── COMPARISON.md    # 与 Rust 客户端对比
+│
+└── README.md            # 本文件
 ```
 
-## 💡 代码示例
+## 🚀 快速开始
 
-### 初始化计数器
+### 运行计数器客户端
 
-```typescript
-// 1. 生成新的计数器账户
-const counter = Keypair.generate();
+```bash
+# 主示例（完整功能）
+npx ts-node client-ts/my-counter/index.ts
 
-// 2. 调用 initialize 指令
-const tx = await program.methods
-  .initialize()
-  .accounts({
-    counter: counter.publicKey,
-    user: provider.wallet.publicKey,
-    // systemProgram 自动解析（Anchor 0.32+）
-  })
-  .signers([counter])  // counter 需要签名（新账户）
-  .rpc();
+# 基础示例
+npx ts-node client-ts/my-counter/examples/basic.ts
 
-console.log("交易签名:", tx);
+# 批量操作示例
+npx ts-node client-ts/my-counter/examples/batch.ts
+
+# 错误处理示例
+npx ts-node client-ts/my-counter/examples/error-handling.ts
 ```
 
-### 增加计数器
+### 运行金库客户端
 
-```typescript
-const tx = await program.methods
-  .increment()
-  .accounts({
-    counter: counter.publicKey,
-    // authority 通过 wallet 自动推断
-  })
-  .rpc();
+```bash
+# 主示例
+npx ts-node client-ts/token-vault/index.ts
 ```
 
-### 查询状态
+## 📚 文档
+
+- [客户端使用文档](shared/README.md) - TypeScript 客户端详细说明
+- [对比文档](shared/COMPARISON.md) - 与 Rust 客户端对比
+- [工具函数库](shared/utils.ts) - 共享工具函数
+
+## 💡 程序说明
+
+### My Counter (计数器)
+
+简单的计数器程序，演示基础的 Solana 程序开发。
+
+**功能**:
+- initialize - 初始化计数器
+- increment - 增加计数
+- decrement - 减少计数
+
+**程序 ID**: `MSzWnazBzfoG8xNbAh82sa35qTjfgpe7Sd6hkq3B4Aj`
+
+### Token Vault (金库)
+
+安全的 SOL 金库程序，支持存款、提款和权限管理。
+
+**功能**:
+- initialize - 创建金库
+- deposit - 存入 SOL
+- withdraw - 提取 SOL
+- transfer_authority - 转移所有权
+- close_vault - 关闭金库
+
+**程序 ID**: `FukTyMfW3YnifZmVD66Y26nXECk68HNbpQ4DfifU16wZ`
+
+## 🔧 共享工具
+
+所有客户端都可以使用 `shared/utils.ts` 中的工具函数：
 
 ```typescript
-const account = await program.account.counter.fetch(counter.publicKey);
+import { createProvider, printAccountInfo, formatSol } from "../shared/utils";
 
-console.log("计数值:", account.count.toString());
-console.log("权限所有者:", account.authority.toBase58());
+// 创建 Provider
+const provider = createProvider();
+
+// 打印账户信息
+await printAccountInfo(connection, publicKey, "账户名称");
+
+// 格式化 SOL 数量
+const solAmount = formatSol(lamports);
 ```
 
-### 批量操作
+## 📖 使用示例
+
+### 基础模板
 
 ```typescript
-// 串行执行（逐个交易）
-for (let i = 0; i < 10; i++) {
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
+import { MyProject } from "../../target/types/my_project";
+import { createProvider } from "../shared/utils";
+
+async function main() {
+  // 1. 创建 Provider
+  const provider = createProvider();
+  anchor.setProvider(provider);
+
+  // 2. 加载程序
+  const program = anchor.workspace.myProject as Program<MyProject>;
+
+  // 3. 调用指令
   await program.methods
-    .increment()
-    .accounts({ counter: counter.publicKey })
+    .initialize()
+    .accounts({ /* ... */ })
     .rpc();
 }
+
+main().catch(console.error);
 ```
 
-### 错误处理
+## 🆚 为什么选择 TypeScript？
 
-```typescript
-try {
-  const wrongAuthority = Keypair.generate();
+| 特性 | TypeScript | Rust |
+|-----|-----------|------|
+| 代码量 | 😊 少（~30 行） | 😰 多（~150 行） |
+| 学习曲线 | 😊 平缓 | 😐 中等 |
+| 开发效率 | ✅ 高 | ⚠️ 中等 |
+| IDE 支持 | ✅ 完整 | ✅ 完整 |
+| 自动化程度 | ✅ 完全自动 | ⚠️ 部分手动 |
 
-  await program.methods
-    .increment()
-    .accounts({
-      counter: counter.publicKey,
-    })
-    .signers([wrongAuthority])  // 错误的签名者
-    .rpc();
-} catch (error) {
-  console.error("错误:", error.message);
+详细对比请查看 [COMPARISON.md](shared/COMPARISON.md)
 
-  // 查看程序日志
-  if (error.logs) {
-    error.logs.forEach(log => console.log(log));
-  }
-}
-```
+## 🎓 学习路径
 
-## 🔧 配置
+1. **入门** (30分钟)
+   - 阅读 [shared/README.md](shared/README.md)
+   - 运行 `my-counter/examples/basic.ts`
 
-### 切换网络
+2. **进阶** (1小时)
+   - 运行所有示例
+   - 阅读 [COMPARISON.md](shared/COMPARISON.md)
+   - 查看 `shared/utils.ts`
 
-修改环境变量或 Anchor.toml：
+3. **实践** (2+小时)
+   - 修改示例代码
+   - 编写自己的客户端
+   - 集成到应用中
 
-```toml
-[provider]
-cluster = "localnet"  # localnet | devnet | testnet | mainnet-beta
-wallet = "~/.config/solana/id.json"
-```
+## 📝 添加新程序客户端
 
-或使用环境变量：
+当你添加新程序时，创建对应的客户端目录：
 
 ```bash
-# 本地网络
-export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+# 创建新程序的客户端目录
+mkdir -p client-ts/my-new-program/examples
 
-# 开发网
-export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
-
-# 钱包路径
-export ANCHOR_WALLET=~/.config/solana/id.json
+# 创建主文件
+touch client-ts/my-new-program/index.ts
+touch client-ts/my-new-program/examples/basic.ts
 ```
 
-### 交易确认级别
+## 🤝 贡献
 
-```typescript
-const provider = new anchor.AnchorProvider(
-  connection,
-  wallet,
-  {
-    commitment: "confirmed",  // processed | confirmed | finalized
-    preflightCommitment: "confirmed"
-  }
-);
-```
-
-## 🆚 TypeScript vs Rust 客户端
-
-| 特性 | TypeScript SDK | Rust SDK |
-|------|---------------|----------|
-| **代码量** | 😊 少 | 😰 多 |
-| **鉴别器处理** | ✅ 自动 | ❌ 手动 |
-| **类型安全** | ✅ 完全 | ⚠️ 部分 |
-| **学习曲线** | 😊 平缓 | 😐 中等 |
-| **IDE 支持** | ✅ 优秀 | ✅ 优秀 |
-| **开发效率** | ✅ 高 | ⚠️ 中等 |
-| **适用场景** | 前端、测试、原型 | 后端服务、高性能 |
-
-详细对比请参阅 [COMPARISON.md](./COMPARISON.md)
-
-## 📝 最佳实践
-
-### 1. 始终处理错误
-
-```typescript
-try {
-  const tx = await program.methods.increment()
-    .accounts({ counter: counter.publicKey })
-    .rpc();
-  // 等待确认
-  await provider.connection.confirmTransaction(tx);
-} catch (error) {
-  console.error("交易失败:", error);
-  // 检查错误类型并相应处理
-}
-```
-
-### 2. 使用类型安全
-
-```typescript
-// ✅ 好 - 使用类型化的 Program
-const program = anchor.workspace.myProject as Program<MyProject>;
-
-// ❌ 不好 - 失去类型安全
-const program = anchor.workspace.myProject;
-```
-
-### 3. 正确管理密钥对
-
-```typescript
-// ✅ 好 - 生产环境从安全位置加载
-const wallet = anchor.web3.Keypair.fromSecretKey(
-  Uint8Array.from(JSON.parse(fs.readFileSync("./wallet.json", "utf-8")))
-);
-
-// ❌ 不好 - 不要硬编码私钥
-const wallet = anchor.web3.Keypair.fromSecretKey([1, 2, 3, ...]);
-```
-
-### 4. 利用 Anchor 0.32+ 的自动账户解析
-
-```typescript
-// ✅ 好 - 让 Anchor 自动推断已知账户
-await program.methods
-  .increment()
-  .accounts({
-    counter: counter.publicKey,
-    // authority 和 systemProgram 自动解析
-  })
-  .rpc();
-
-// ❌ 旧方式 - 手动指定所有账户（Anchor 0.30 及更早版本）
-await program.methods
-  .increment()
-  .accounts({
-    counter: counter.publicKey,
-    authority: wallet.publicKey,
-    systemProgram: SystemProgram.programId,
-  })
-  .rpc();
-```
-
-## 🐛 调试技巧
-
-### 查看程序日志
-
-```bash
-# 在另一个终端
-solana logs
-```
-
-### 查看账户信息
-
-```bash
-solana account <COUNTER_ADDRESS>
-```
-
-### 查看交易详情
-
-```bash
-solana confirm -v <TRANSACTION_SIGNATURE>
-```
-
-### 在代码中打印日志
-
-```typescript
-// 打印交易详情
-const tx = await program.methods.increment()
-  .accounts({ counter: counter.publicKey })
-  .rpc();
-
-const txDetails = await provider.connection.getTransaction(tx, {
-  commitment: "confirmed"
-});
-console.log("交易详情:", JSON.stringify(txDetails, null, 2));
-```
-
-## 🔗 相关资源
-
-- [Anchor 官方文档](https://www.anchor-lang.com/)
-- [Anchor TypeScript Client 文档](https://www.anchor-lang.com/docs/typescript-client)
-- [Solana Cookbook](https://solanacookbook.com/)
-- [Solana Web3.js 文档](https://solana-labs.github.io/solana-web3.js/)
-- [Anchor 示例代码](https://github.com/coral-xyz/anchor/tree/master/examples)
-
-## ❓ 常见问题
-
-### Q: 如何获取程序 ID？
-
-从 `Anchor.toml` 或智能合约的 `declare_id!` 宏获取：
-
-```typescript
-console.log("程序 ID:", program.programId.toBase58());
-```
-
-### Q: 为什么账户类型不匹配？
-
-确保你的类型定义与智能合约一致。重新构建项目会更新类型：
-
-```bash
-anchor build
-```
-
-### Q: Anchor 0.32+ 中哪些账户会自动解析？
-
-- 具有固定地址的账户（如 `systemProgram`）
-- 签名者账户（如 `authority`）在某些情况下会从 wallet 推断
-- 使用 PDA 推导的账户
-
-### Q: 如何在前端使用？
-
-```typescript
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { Connection, PublicKey } from "@solana/web3.js";
-import idl from "./idl/my_project.json";
-
-// 使用浏览器钱包（如 Phantom）
-const connection = new Connection("https://api.devnet.solana.com");
-const wallet = window.solana;  // Phantom wallet
-
-const provider = new AnchorProvider(connection, wallet, {});
-const program = new Program(idl, programId, provider);
-```
-
-### Q: 交易失败怎么办？
-
-1. 检查错误消息和日志
-2. 确认账户地址正确
-3. 确认钱包有足够 SOL
-4. 检查程序是否正确部署
-5. 使用 `solana logs` 查看实时日志
+欢迎贡献新的示例和工具函数！
 
 ## 📄 许可证
 
 ISC
 
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
 ---
 
-**提示**: 这个客户端是学习 Anchor TypeScript SDK 的完整示例。建议先阅读代码注释，然后运行程序观察输出，最后尝试修改代码进行实验。
+**提示**: 所有客户端共享 `utils.ts` 工具库，避免代码重复。
