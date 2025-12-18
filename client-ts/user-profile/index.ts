@@ -148,6 +148,7 @@ async function main() {
     // 注意：必须由管理员钱包签名
     const updateTx = await program.methods
       .updateProfile(
+        userId,                  // userId: 用于 PDA 验证
         null,                    // username: 不更新（传 null）
         null,                    // email: 不更新
         26,                      // age: 更新为 26
@@ -191,6 +192,7 @@ async function main() {
 
     const fullUpdateTx = await program.methods
       .updateProfile(
+        userId,                              // userId: 用于 PDA 验证
         "alice_solana",                      // 更新用户名
         "alice.solana@example.com",         // 更新邮箱
         27,                                  // 更新年龄
@@ -273,7 +275,7 @@ async function main() {
 
     // 删除第一个用户资料
     const deleteTx = await program.methods
-      .deleteProfile()
+      .deleteProfile(userId)
       .accountsPartial({
         userProfile: userProfilePda,
         admin: admin,
@@ -288,7 +290,7 @@ async function main() {
 
     // 删除第二个用户资料
     const deleteTx2 = await program.methods
-      .deleteProfile()
+      .deleteProfile(userId2)
       .accountsPartial({
         userProfile: userProfilePda2,
         admin: admin,
