@@ -4,7 +4,7 @@
 
 ## 📚 项目简介
 
-这是一个教学项目，包含**三个完整的 Solana 智能合约**，覆盖不同的应用场景：
+这是一个教学项目，包含**四个完整的 Solana 智能合约**，覆盖不同的应用场景：
 
 ### 🔢 程序 1: My Counter（计数器）
 - ✅ **功能**: 简单的计数器，支持增加和减少
@@ -18,11 +18,17 @@
 - ✅ **特色**: 完整的中文代码注释（500+ 行）
 - 📖 [查看详细文档](programs/token-vault/README.md)
 
-### 👤 程序 3: User Profile（用户资料管理）⭐ 新增
+### 👤 程序 3: User Profile（用户资料管理）
 - ✅ **功能**: 第三方系统用户资料管理（集中式管理员模式）
 - ✅ **学习重点**: 集中式架构、多用户管理、第三方系统集成
 - ✅ **特色**: 完整的中文代码注释，支持部分更新、时间戳追踪
 - 📖 [查看详细文档](programs/user-profile/README.md)
+
+### 💱 程序 4: Simple AMM（自动做市商）⭐ 新增
+- ✅ **功能**: 去中心化交易所核心 - 流动性池和代币交换
+- ✅ **学习重点**: DeFi 协议、恒定乘积公式、LP 代币、流动性管理
+- ✅ **特色**: 完整的 AMM 实现，包含流动性挖矿、滑点保护、交易手续费
+- 📖 完整测试套件和客户端示例
 
 ### 项目特点
 
@@ -40,13 +46,14 @@
 |------|------|---------|------|
 | **my-counter** | 计数器 | `MSzWnazBzfoG8xNbAh82sa35qTjfgpe7Sd6hkq3B4Aj` | [README](programs/my-project/README.md) |
 | **token-vault** | SOL 金库 | `FukTyMfW3YnifZmVD66Y26nXECk68HNbpQ4DfifU16wZ` | [README](programs/token-vault/README.md) |
-| **user-profile** ⭐ | 用户资料管理 | `3cSw9RozRy2bUVsB5PhBGKFHoy4CYCReEB99FmW1eUHL` | [README](programs/user-profile/README.md) |
+| **user-profile** | 用户资料管理 | `3cSw9RozRy2bUVsB5PhBGKFHoy4CYCReEB99FmW1eUHL` | [README](programs/user-profile/README.md) |
+| **simple-amm** ⭐ | 自动做市商 | `49CJcqADMbvtbEn4ZCuEJakif6wsue4RAaPrSp5SfdEB` | - |
 
 ### 客户端文档
 
 | 客户端 | 支持程序 | 文档 |
 |--------|---------|------|
-| **TypeScript** ⭐ | 全部 | [my-counter](client-ts/my-counter/README.md) · [token-vault](client-ts/token-vault/README.md) · [user-profile](client-ts/user-profile/README.md) |
+| **TypeScript** ⭐ | 全部 | [my-counter](client-ts/my-counter/README.md) · [token-vault](client-ts/token-vault/README.md) · [user-profile](client-ts/user-profile/README.md) · [simple-amm](client-ts/simple-amm/) |
 | **Rust** | my-counter | [README](client/README.md) |
 
 ### 开发指南
@@ -125,11 +132,18 @@ anchor deploy --program-name my-project
 npx ts-node client-ts/token-vault/index.ts
 ```
 
-**👤 User Profile（用户资料管理）⭐ 新增**
+**👤 User Profile（用户资料管理）**
 
 ```bash
 # 运行完整示例（集中式管理员模式演示）
 npx ts-node client-ts/user-profile/index.ts
+```
+
+**💱 Simple AMM（自动做市商）⭐ 新增**
+
+```bash
+# 运行完整示例（演示完整 AMM 流程）
+npx ts-node client-ts/simple-amm/index.ts
 ```
 
 **🔢 My Counter（计数器）**
@@ -164,6 +178,7 @@ anchor test
 # 运行特定程序的测试
 anchor test tests/token-vault.ts
 anchor test tests/user-profile.ts
+anchor test tests/simple-amm.ts
 anchor test tests/my-project.ts
 ```
 
@@ -184,11 +199,16 @@ my-project/
 │   │   ├── Cargo.toml
 │   │   └── README.md
 │   │
-│   └── user-profile/              # 程序 3: 用户资料管理 ⭐ 新增
+│   ├── user-profile/              # 程序 3: 用户资料管理
+│   │   ├── src/
+│   │   │   └── lib.rs             # 程序代码（含详细中文注释）
+│   │   ├── Cargo.toml
+│   │   └── README.md
+│   │
+│   └── simple-amm/                # 程序 4: 自动做市商 ⭐ 新增
 │       ├── src/
-│       │   └── lib.rs             # 程序代码（含详细中文注释）
-│       ├── Cargo.toml
-│       └── README.md
+│       │   └── lib.rs             # 程序代码
+│       └── Cargo.toml
 │
 ├── client/                        # Rust 客户端（仅支持 my-counter）
 │   ├── src/
@@ -208,9 +228,12 @@ my-project/
 │   │   ├── index.ts               # 含详细中文注释
 │   │   └── README.md
 │   │
-│   ├── user-profile/              # user-profile 客户端 ⭐ 新增
+│   ├── user-profile/              # user-profile 客户端
 │   │   ├── index.ts               # 含详细中文注释
 │   │   └── README.md
+│   │
+│   ├── simple-amm/                # simple-amm 客户端 ⭐ 新增
+│   │   └── index.ts               # 含详细中文注释
 │   │
 │   └── shared/                    # 共享工具
 │       ├── utils.ts
@@ -220,7 +243,8 @@ my-project/
 ├── tests/                         # 测试文件
 │   ├── my-project.ts
 │   ├── token-vault.ts
-│   └── user-profile.ts            # ⭐ 新增
+│   ├── user-profile.ts
+│   └── simple-amm.ts              # ⭐ 新增
 │
 ├── target/                        # 编译输出
 │   ├── deploy/                    # 部署文件
@@ -228,16 +252,20 @@ my-project/
 │   │   ├── my_project-keypair.json
 │   │   ├── token_vault.so
 │   │   ├── token_vault-keypair.json
-│   │   ├── user_profile.so        # ⭐ 新增
-│   │   └── user_profile-keypair.json
+│   │   ├── user_profile.so
+│   │   ├── user_profile-keypair.json
+│   │   ├── simple_amm.so          # ⭐ 新增
+│   │   └── simple_amm-keypair.json
 │   ├── idl/                       # IDL 文件
 │   │   ├── my_project.json
 │   │   ├── token_vault.json
-│   │   └── user_profile.json      # ⭐ 新增
+│   │   ├── user_profile.json
+│   │   └── simple_amm.json        # ⭐ 新增
 │   └── types/                     # TypeScript 类型定义
 │       ├── my_project.ts
 │       ├── token_vault.ts
-│       └── user_profile.ts        # ⭐ 新增
+│       ├── user_profile.ts
+│       └── simple_amm.ts          # ⭐ 新增
 │
 ├── Anchor.toml                    # Anchor 配置（多程序）
 ├── Cargo.toml                     # Workspace 配置
@@ -262,12 +290,16 @@ my-project/
    - 查看 [programs/token-vault/src/lib.rs](programs/token-vault/src/lib.rs)（含详细中文注释）
    - 查看 [client-ts/token-vault/index.ts](client-ts/token-vault/index.ts)（含详细中文注释）
    - 运行完整示例，理解 PDA、CPI 等高级概念
-4. **第四步**: 学习 **User Profile** 程序 ⭐ 新增
+4. **第四步**: 学习 **User Profile** 程序
    - 查看 [programs/user-profile/src/lib.rs](programs/user-profile/src/lib.rs)（含详细中文注释）
    - 查看 [client-ts/user-profile/index.ts](client-ts/user-profile/index.ts)（含详细中文注释）
    - 理解集中式架构、多用户管理、第三方系统集成
-5. **第五步**: 阅读 [多程序开发指南](MULTI_PROGRAM_GUIDE.md)
-6. **第六步**: 修改代码进行实验
+5. **第五步**: 学习 **Simple AMM** 程序 ⭐ 新增
+   - 查看 [programs/simple-amm/src/lib.rs](programs/simple-amm/src/lib.rs)
+   - 查看 [client-ts/simple-amm/index.ts](client-ts/simple-amm/index.ts)（含详细中文注释）
+   - 理解 DeFi 协议、AMM 机制、流动性管理
+6. **第六步**: 阅读 [多程序开发指南](MULTI_PROGRAM_GUIDE.md)
+7. **第七步**: 修改代码进行实验
 
 #### 快速上手路线（直接看完整示例）
 
@@ -277,17 +309,17 @@ my-project/
 
 ## 💡 程序功能对比
 
-| 功能 | My Counter | Token Vault | User Profile |
-|------|-----------|-------------|--------------|
-| **难度** | ⭐ 入门 | ⭐⭐⭐ 中级 | ⭐⭐ 初中级 |
-| **核心概念** | 账户、指令 | PDA、CPI、Rent | 集中式架构、多用户管理 |
-| **账户类型** | 普通账户 | PDA 账户 | PDA 账户 |
-| **权限控制** | ✅ 基础 | ✅ 高级（所有权转移） | ✅ 集中式管理员 |
-| **跨程序调用** | ❌ | ✅ 支持 CPI | ❌ |
-| **部分更新** | ❌ | ❌ | ✅ Option<T> |
-| **时间戳** | ❌ | ❌ | ✅ 自动追踪 |
-| **中文注释** | 部分 | ✅ 完整（500+ 行）| ✅ 完整（500+ 行）|
-| **适合场景** | 学习基础 | 实际应用开发 | 第三方系统集成 |
+| 功能 | My Counter | Token Vault | User Profile | Simple AMM |
+|------|-----------|-------------|--------------|------------|
+| **难度** | ⭐ 入门 | ⭐⭐⭐ 中级 | ⭐⭐ 初中级 | ⭐⭐⭐⭐ 高级 |
+| **核心概念** | 账户、指令 | PDA、CPI、Rent | 集中式架构、多用户管理 | DeFi、AMM、流动性 |
+| **账户类型** | 普通账户 | PDA 账户 | PDA 账户 | PDA 账户 |
+| **权限控制** | ✅ 基础 | ✅ 高级（所有权转移） | ✅ 集中式管理员 | ✅ 流动性池权限 |
+| **跨程序调用** | ❌ | ✅ 支持 CPI | ❌ | ✅ SPL Token CPI |
+| **代币操作** | ❌ | ✅ SOL | ❌ | ✅ SPL Token |
+| **数学计算** | 简单 | 简单 | 简单 | ✅ 复杂（恒定乘积） |
+| **中文注释** | 部分 | ✅ 完整（500+ 行）| ✅ 完整（500+ 行）| ✅ 客户端完整 |
+| **适合场景** | 学习基础 | 实际应用开发 | 第三方系统集成 | DeFi 协议开发 |
 
 ## 🔧 开发指南
 
@@ -515,5 +547,6 @@ Made with ❤️ for the Solana community
 **🔥 特别推荐**:
 - [Token Vault 程序](programs/token-vault/) - SOL 金库，包含 500+ 行详细中文注释！
 - [User Profile 程序](programs/user-profile/) - 用户资料管理（集中式），包含 500+ 行详细中文注释！
+- [Simple AMM 程序](programs/simple-amm/) ⭐ - 自动做市商 DeFi 协议，完整的 AMM 实现！
 
 </div>
