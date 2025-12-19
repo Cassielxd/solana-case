@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简单连接测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    button {
+      background: #512da8;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      margin: 10px;
+    }
+    button:hover {
+      background: #4527a0;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 8px;
+      background: #f5f5f5;
+      text-align: left;
+    }
+    .success { background: #e8f5e9; color: #2e7d32; }
+    .error { background: #ffebee; color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>🔌 简单 Phantom 连接测试</h1>
+
+  <p>这个页面使用最简单的方式连接 Phantom</p>
+
+  <button onclick="simpleConnect()">连接 Phantom</button>
+  <button onclick="checkStatus()">检查状态</button>
+
+  <div id="result"></div>
+
+  <script>
+    const resultDiv = document.getElementById('result');
+    let wallet = null;
+
+    function showResult(message, isError = false) {
+      resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+      resultDiv.innerHTML = message;
+    }
+
+    async function simpleConnect() {
+      showResult('正在连接...');
+
+      try {
+        // 检查 Phantom 是否存在
+        if (!window.solana) {
+          throw new Error('Phantom 未安装');
+        }
+
+        console.log('Phantom 对象:', window.solana);
+
+        // 最简单的连接方式
+        const response = await window.solana.connect();
+
+        wallet = response.publicKey;
+
+        showResult(`
+          <h3>✅ 连接成功！</h3>
+          <p><strong>钱包地址:</strong><br>${wallet.toString()}</p>
+          <p><strong>已连接:</strong> ${window.solana.isConnected}</p>
+          <hr>
+          <p style="color: #666; font-size: 14px;">
+            现在您可以关闭这个页面，回到主应用重新尝试连接。
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            如果主应用还是失败，请复制您的钱包地址并执行空投：
+          </p>
+          <pre style="background: #263238; color: #aed581; padding: 10px; border-radius: 4px; text-align: left;">solana airdrop 10 ${wallet.toString()}</pre>
+        `);
+
+      } catch (error) {
+        console.error('连接错误详情:', error);
+
+        let errorMsg = '<h3>❌ 连接失败</h3>';
+        errorMsg += '<p><strong>错误:</strong> ' + error.message + '</p>';
+
+        if (error.message.includes('User rejected')) {
+          errorMsg += '<p>您拒绝了连接请求，请重新点击按钮并在 Phantom 中批准。</p>';
+        } else {
+          errorMsg += '<h4>尝试以下步骤：</h4>';
+          errorMsg += '<ol style="text-align: left;">';
+          errorMsg += '<li>关闭 Phantom 钱包</li>';
+          errorMsg += '<li>重新打开并解锁 Phantom</li>';
+          errorMsg += '<li>刷新此页面</li>';
+          errorMsg += '<li>如果还是失败，尝试重启浏览器</li>';
+          errorMsg += '</ol>';
+          errorMsg += '<p><strong>详细错误信息：</strong></p>';
+          errorMsg += '<pre style="background: #263238; color: #ff6f00; padding: 10px; border-radius: 4px; text-align: left; font-size: 12px; overflow-x: auto;">' + error.stack + '</pre>';
+        }
+
+        showResult(errorMsg, true);
+      }
+    }
+
+    async function checkStatus() {
+      if (!window.solana) {
+        showResult('❌ Phantom 未安装', true);
+        return;
+      }
+
+      const info = {
+        isPhantom: window.solana.isPhantom,
+        isConnected: window.solana.isConnected,
+        publicKey: window.solana.publicKey ? window.solana.publicKey.toString() : null
+      };
+
+      showResult(`
+        <h3>Phantom 状态</h3>
+        <ul style="text-align: left;">
+          <li><strong>是否为 Phantom:</strong> ${info.isPhantom}</li>
+          <li><strong>是否已连接:</strong> ${info.isConnected}</li>
+          <li><strong>当前钱包:</strong> ${info.publicKey || '未连接'}</li>
+        </ul>
+      `);
+    }
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      setTimeout(checkStatus, 500);
+    });
+  </script>
+</body>
+</html>

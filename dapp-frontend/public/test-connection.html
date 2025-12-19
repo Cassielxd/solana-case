@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phantom 连接测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #512da8;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #4527a0;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 6px;
+      background: #e3f2fd;
+    }
+    .error {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    pre {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔌 Phantom 钱包连接测试</h1>
+
+    <div id="status" class="status">
+      等待操作...
+    </div>
+
+    <div>
+      <button onclick="checkPhantom()">1. 检查 Phantom 是否安装</button>
+      <button onclick="connectWallet()">2. 连接钱包</button>
+      <button onclick="getBalance()">3. 获取余额</button>
+      <button onclick="testRPC()">4. 测试本地 RPC</button>
+    </div>
+
+    <div id="details" style="margin-top: 20px;"></div>
+  </div>
+
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  <script>
+    const statusDiv = document.getElementById('status');
+    const detailsDiv = document.getElementById('details');
+    let provider = null;
+    let publicKey = null;
+
+    function updateStatus(message, type = 'info') {
+      statusDiv.className = 'status';
+      if (type === 'error') statusDiv.classList.add('error');
+      if (type === 'success') statusDiv.classList.add('success');
+      statusDiv.innerHTML = message;
+    }
+
+    function showDetails(data) {
+      detailsDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+    }
+
+    async function checkPhantom() {
+      updateStatus('检查 Phantom 钱包...');
+
+      if (window.solana && window.solana.isPhantom) {
+        provider = window.solana;
+        const info = {
+          installed: true,
+          version: window.solana._version || 'unknown',
+          publicKey: window.solana.publicKey ? window.solana.publicKey.toString() : null,
+          connected: window.solana.isConnected
+        };
+        updateStatus('✅ Phantom 钱包已安装', 'success');
+        showDetails(info);
+      } else {
+        updateStatus('❌ 未检测到 Phantom 钱包，请先安装', 'error');
+        detailsDiv.innerHTML = '<p>请访问: <a href="https://phantom.app" target="_blank">https://phantom.app</a></p>';
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.solana) {
+        updateStatus('❌ 请先安装 Phantom 钱包', 'error');
+        return;
+      }
+
+      updateStatus('正在连接钱包...');
+
+      try {
+        const resp = await window.solana.connect();
+        publicKey = resp.publicKey;
+
+        const info = {
+          success: true,
+          publicKey: publicKey.toString(),
+          connected: window.solana.isConnected
+        };
+
+        updateStatus('✅ 钱包连接成功！', 'success');
+        showDetails(info);
+      } catch (error) {
+        updateStatus('❌ 连接失败: ' + error.message, 'error');
+        showDetails({
+          error: error.message,
+          stack: error.stack,
+          suggestion: '请尝试：\n1. 在 Phantom 中切换到 Devnet\n2. 刷新页面\n3. 重新连接'
+        });
+      }
+    }
+
+    async function getBalance() {
+      if (!publicKey) {
+        updateStatus('❌ 请先连接钱包', 'error');
+        return;
+      }
+
+      updateStatus('正在获取余额...');
+
+      try {
+        const connection = new solanaWeb3.Connection('http://127.0.0.1:8899', 'confirmed');
+        const balance = await connection.getBalance(publicKey);
+        const sol = balance / solanaWeb3.LAMPORTS_PER_SOL;
+
+        const info = {
+          publicKey: publicKey.toString(),
+          balance: sol + ' SOL',
+          lamports: balance,
+          rpcUrl: 'http://127.0.0.1:8899'
+        };
+
+        updateStatus(`✅ 余额: ${sol} SOL`, 'success');
+        showDetails(info);
+
+        if (sol < 0.01) {
+          detailsDiv.innerHTML += '<p style="color: #ff6f00; margin-top: 10px;">⚠️ 余额不足，请执行空投命令：</p><pre>solana airdrop 10 ' + publicKey.toString() + '</pre>';
+        }
+      } catch (error) {
+        updateStatus('❌ 获取余额失败: ' + error.message, 'error');
+        showDetails({
+          error: error.message,
+          suggestion: '请确认本地验证器正在运行：\nsolana cluster-version'
+        });
+      }
+    }
+
+    async function testRPC() {
+      updateStatus('正在测试本地 RPC...');
+
+      try {
+        const connection = new solanaWeb3.Connection('http://127.0.0.1:8899', 'confirmed');
+        const version = await connection.getVersion();
+        const slot = await connection.getSlot();
+        const blockHeight = await connection.getBlockHeight();
+
+        const info = {
+          rpcUrl: 'http://127.0.0.1:8899',
+          version: version,
+          currentSlot: slot,
+          blockHeight: blockHeight,
+          status: 'connected'
+        };
+
+        updateStatus('✅ 本地 RPC 连接正常', 'success');
+        showDetails(info);
+      } catch (error) {
+        updateStatus('❌ RPC 连接失败: ' + error.message, 'error');
+        showDetails({
+          error: error.message,
+          suggestion: '请确认本地验证器正在运行：\nsolana-test-validator'
+        });
+      }
+    }
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      setTimeout(checkPhantom, 500);
+    });
+  </script>
+</body>
+</html>
